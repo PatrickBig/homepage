@@ -1067,14 +1067,14 @@
     },
     "litellm": {
         "models": "Models",
-        "spend": "Spend (all time)",
+        "spend": "Spend",
         "budget": "Budget Used",
         "requests_range": "Requests ({{days}}d)",
         "tokens_range": "Tokens ({{days}}d)",
         "users": "Users",
         "cache_range": "Cache Hit ({{days}}d)",
         "failed_range": "Failed ({{days}}d)",
-        "top_model": "Top Model (all time)"
+        "top_model": "Top Model"
     },
     "zabbix": {
       "unclassified": "Not classified",

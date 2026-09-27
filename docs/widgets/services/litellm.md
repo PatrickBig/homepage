@@ -16,24 +16,29 @@ The `models` field works with any LiteLLM key. The other fields (`spend`, `budge
 
 ## Fields
 
-| Field        | Label            | Endpoint                       | Description                                        |
-| ------------ | ---------------- | ------------------------------ | -------------------------------------------------- |
-| `models`     | Models           | `GET /v1/models`               | Number of available models (works with any key)    |
-| `spend`      | Spend (all time) | `GET /global/spend`            | Total spend across all time (USD)                  |
-| `budget`     | Budget Used      | `GET /global/spend`            | Spend as a percentage of `max_budget` (admin)      |
-| `requests`   | Requests (30d)   | `GET /global/activity`         | API requests in the last 30 days                   |
-| `tokens`     | Tokens (30d)     | `GET /global/activity`         | Tokens in the last 30 days                         |
-| `users`      | Users            | `GET /user/list`               | Number of users (admin)                            |
-| `cache`      | Cache Hit (30d)  | `GET /global/activity/cache_hits` | Cache hit ratio over the last 30 days            |
-| `failed`     | Failed (30d)     | `GET /global/activity/cache_hits` | Failed requests over the last 30 days            |
-| `top_model`  | Top Model        | `GET /global/spend/models`     | Highest-spending model, all time (admin)           |
+| Field       | Label          | Date filter | Description                                        |
+| ----------- | -------------- | ----------- | -------------------------------------------------- |
+| `models`    | Models         | ❌          | Number of available models (works with any key)    |
+| `spend`     | Spend          | ❌          | Total spend across all time (USD)                  |
+| `budget`    | Budget Used    | ❌          | Spend as a percentage of `max_budget` (admin)      |
+| `requests`  | Requests (30d) | ✅          | API requests in the selected window                |
+| `tokens`    | Tokens (30d)   | ✅          | Tokens in the selected window                      |
+| `users`     | Users          | ❌          | Number of users (admin)                            |
+| `cache`     | Cache Hit (30d)| ✅          | Cache hit ratio over the selected window           |
+| `failed`    | Failed (30d)   | ✅          | Failed requests in the selected window             |
+| `top_model` | Top Model      | ❌          | Highest-spending model (admin)                     |
 
 Pick up to **four** fields via `widget.fields` — default is `["models", "spend", "requests", "tokens"]`.
 Only the endpoints needed by the selected fields are fetched.
 
-Note that `spend`, `budget` and `top_model` are **all-time** totals — the LiteLLM
-endpoints behind them (`/global/spend`, `/global/spend/models`) do not accept a date range.
-The `(30d)` fields use the last 30 days.
+### Date filter
+
+Fields marked ✅ are counted over a rolling window controlled by the `days` setting
+(default **30**), and their label carries that window as a suffix — e.g. with
+`days: 7` you see **Requests (7d)** and **Tokens (7d)**. Fields without the suffix
+are **all-time** totals (the LiteLLM endpoints behind them, `/global/spend` and
+`/global/spend/models`, do not accept a date range), which is why `spend`, `budget`
+and `top_model` carry no suffix.
 
 ## Services Config
 
@@ -58,3 +63,7 @@ services:
       #   - failed
       #   - top_model
 ```
+
+The above configuration would result in something like this:
+
+![LiteLLM Widget Preview](../../assets/litellm.png)
