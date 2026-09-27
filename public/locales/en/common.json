@@ -1065,6 +1065,17 @@
         "collections": "Collections",
         "tags": "Tags"
     },
+    "litellm": {
+        "models": "Models",
+        "spend": "Spend",
+        "budget": "Budget Used",
+        "requests": "Requests (30d)",
+        "tokens": "Tokens (30d)",
+        "users": "Users",
+        "cache": "Cache Hit (30d)",
+        "failed": "Failed (30d)",
+        "top_model": "Top Model"
+    },
     "zabbix": {
       "unclassified": "Not classified",
       "information": "Information",

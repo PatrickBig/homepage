@@ -75,6 +75,7 @@ You can also find a list of all available service widgets in the sidebar navigat
 - [Kopia](kopia.md)
 - [Lidarr](lidarr.md)
 - [Linkwarden](linkwarden.md)
+- [LiteLLM](litellm.md)
 - [Lubelogger](lubelogger.md)
 - [Mastodon](mastodon.md)
 - [Mailcow](mailcow.md)

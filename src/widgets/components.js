@@ -74,6 +74,7 @@ const components = {
   kopia: dynamic(() => import("./kopia/component")),
   lidarr: dynamic(() => import("./lidarr/component")),
   linkwarden: dynamic(() => import("./linkwarden/component")),
+  litellm: dynamic(() => import("./litellm/component")),
   lubelogger: dynamic(() => import("./lubelogger/component")),
   mailcow: dynamic(() => import("./mailcow/component")),
   maintainerr: dynamic(() => import("./maintainerr/component")),
