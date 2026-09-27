@@ -66,4 +66,4 @@ services:
 
 The above configuration would result in something like this:
 
-![LiteLLM Widget Preview](../../assets/litellm.png)
+![LiteLLM Widget Preview](../../assets/widget_litellm_demo.png)
