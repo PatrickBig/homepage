@@ -31,6 +31,7 @@ import duplicati from "./duplicati/widget";
 import emby from "./emby/widget";
 import esphome from "./esphome/widget";
 import evcc from "./evcc/widget";
+import feed from "./feed/widget";
 import filebrowser from "./filebrowser/widget";
 import fileflows from "./fileflows/widget";
 import firefly from "./firefly/widget";
@@ -113,6 +114,7 @@ import pulse from "./pulse/widget";
 import pyload from "./pyload/widget";
 import qbittorrent from "./qbittorrent/widget";
 import qnap from "./qnap/widget";
+import qui from "./qui/widget";
 import radarr from "./radarr/widget";
 import readarr from "./readarr/widget";
 import romm from "./romm/widget";
@@ -192,6 +194,7 @@ const widgets = {
   emby,
   esphome,
   evcc,
+  feed,
   filebrowser,
   fileflows,
   firefly,
@@ -279,6 +282,7 @@ const widgets = {
   pyload,
   qbittorrent,
   qnap,
+  qui,
   radarr,
   readarr,
   romm,
