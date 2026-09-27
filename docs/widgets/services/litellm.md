@@ -46,6 +46,7 @@ services:
       type: litellm
       url: http://litellm.example.com:4000
       key: sk-1234 # LiteLLM master (admin) key
+      # days: 30 # optional window in days for requests/tokens/cache/failed (default 30)
       # fields: # optional, max 4 (default: models, spend, requests, tokens)
       #   - models
       #   - spend

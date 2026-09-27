@@ -12,7 +12,14 @@ vi.mock("utils/proxy/use-widget-api", () => ({
   default: useWidgetAPI,
 }));
 
-import Component, { DEFAULT_FIELDS, activityRange } from "./component";
+import Component, { DEFAULT_DAYS, DEFAULT_FIELDS, activityRange } from "./component";
+
+const RANGE_FIELDS = {
+  requests: "requests_range",
+  tokens: "tokens_range",
+  cache: "cache_range",
+  failed: "failed_range",
+};
 
 const MODELS_DATA = { data: [{ id: "gpt-4o" }, { id: "claude-3" }] };
 const SPEND_DATA = { spend: 12.345, max_budget: 100 };
@@ -37,10 +44,16 @@ describe("widgets/litellm/component", () => {
     vi.clearAllMocks();
   });
 
-  it("uses a 30 day activity window ending today", () => {
-    const range = activityRange(new Date("2026-01-31T12:00:00Z"));
+  it("uses a 30 day activity window ending today by default", () => {
+    const range = activityRange(DEFAULT_DAYS, new Date("2026-01-31T12:00:00Z"));
     expect(range.end_date).toBe("2026-01-31");
     expect(range.start_date).toBe("2026-01-02");
+  });
+
+  it("uses the configured days for the activity window", () => {
+    const range = activityRange(7, new Date("2026-01-31T12:00:00Z"));
+    expect(range.end_date).toBe("2026-01-31");
+    expect(range.start_date).toBe("2026-01-25");
   });
 
   it("renders error UI when every selected endpoint fails", () => {
@@ -65,7 +78,8 @@ describe("widgets/litellm/component", () => {
     expect(container.querySelectorAll(".service-block")).toHaveLength(4);
     expect(DEFAULT_FIELDS).toEqual(["models", "spend", "requests", "tokens"]);
     for (const field of DEFAULT_FIELDS) {
-      expect(screen.getByText(`litellm.${field}`)).toBeInTheDocument();
+      const label = RANGE_FIELDS[field] ? `litellm.${RANGE_FIELDS[field]}` : `litellm.${field}`;
+      expect(screen.getByText(label)).toBeInTheDocument();
     }
     expect(screen.getAllByText("-")).toHaveLength(4);
   });
@@ -81,8 +95,8 @@ describe("widgets/litellm/component", () => {
 
     expectBlockValue(container, "litellm.models", "2");
     expectBlockValue(container, "litellm.spend", "$12.35");
-    expectBlockValue(container, "litellm.requests", "99");
-    expectBlockValue(container, "litellm.tokens", "1234567");
+    expectBlockValue(container, "litellm.requests_range", "99");
+    expectBlockValue(container, "litellm.tokens_range", "1234567");
   });
 
   it("supports the bare-array models response shape", () => {
@@ -119,7 +133,7 @@ describe("widgets/litellm/component", () => {
     const findCall = (endpoint) => useWidgetAPI.mock.calls.find((call) => call[1] === endpoint);
     const activityCall = findCall("activity");
     expect(activityCall).toBeTruthy();
-    expect(activityCall[2]).toEqual(activityRange(new Date(activityCall[2].end_date + "T00:00:00Z")));
+    expect(activityCall[2]).toEqual(activityRange(DEFAULT_DAYS, new Date(activityCall[2].end_date + "T00:00:00Z")));
 
     const cacheCall = findCall("cache");
     expect(cacheCall).toBeTruthy();
@@ -128,6 +142,27 @@ describe("widgets/litellm/component", () => {
 
     const topModelCall = findCall("top_model");
     expect(topModelCall).toBeUndefined();
+  });
+
+  it("honors the days config for range endpoints and falls back for invalid values", () => {
+    mockEndpoints();
+    render({
+      widget: { type: "litellm", url: "http://x", days: 7, fields: ["requests", "tokens", "cache", "failed"] },
+    });
+
+    const findCall = (endpoint) => useWidgetAPI.mock.calls.find((call) => call[1] === endpoint);
+    const activityCall = findCall("activity");
+    expect(activityCall[2]).toEqual(activityRange(7, new Date(activityCall[2].end_date + "T00:00:00Z")));
+    const cacheCall = findCall("cache");
+    expect(cacheCall[2]).toEqual(activityRange(7, new Date(cacheCall[2].end_date + "T00:00:00Z")));
+
+    // invalid values fall back to the 30 day default
+    useWidgetAPI.mockClear();
+    render({
+      widget: { type: "litellm", url: "http://x", days: "7", fields: ["requests", "tokens", "cache", "failed"] },
+    });
+    const fallbackCall = useWidgetAPI.mock.calls.find((call) => call[1] === "activity");
+    expect(fallbackCall[2]).toEqual(activityRange(DEFAULT_DAYS, new Date(fallbackCall[2].end_date + "T00:00:00Z")));
   });
 
   it("renders optional fields budget, users, cache and top_model", () => {
@@ -145,7 +180,7 @@ describe("widgets/litellm/component", () => {
     expect(container.querySelectorAll(".service-block")).toHaveLength(4);
     expectBlockValue(container, "litellm.budget", "12.3");
     expectBlockValue(container, "litellm.users", "7");
-    expectBlockValue(container, "litellm.cache", "33.3");
+    expectBlockValue(container, "litellm.cache_range", "33.3");
     expectBlockValue(container, "litellm.top_model", "gpt-4o");
   });
 
@@ -158,7 +193,7 @@ describe("widgets/litellm/component", () => {
       widget: { type: "litellm", url: "http://x", fields: ["failed", "cache", "budget", "models"] },
     });
 
-    expectBlockValue(container, "litellm.failed", "4");
+    expectBlockValue(container, "litellm.failed_range", "4");
   });
 
   it("degrades gracefully when only some endpoints are accessible", () => {

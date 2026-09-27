@@ -7,6 +7,8 @@ import withWidgetFields from "utils/widget-fields";
 
 export const DEFAULT_FIELDS = ["models", "spend", "requests", "tokens"];
 
+export const DEFAULT_DAYS = 30;
+
 // which endpoint provides the data for each field
 const FIELD_ENDPOINTS = {
   models: "models",
@@ -20,11 +22,17 @@ const FIELD_ENDPOINTS = {
   top_model: "top_model",
 };
 
-// /global/activity requires an explicit date range; show the last 30 days
-const ACTIVITY_WINDOW_DAYS = 30;
+// fields whose window is driven by the optional `days` config
+const RANGE_FIELDS = {
+  requests: "requests_range",
+  tokens: "tokens_range",
+  cache: "cache_range",
+  failed: "failed_range",
+};
 
-export function activityRange(now = new Date()) {
-  const start = new Date(now.getTime() - (ACTIVITY_WINDOW_DAYS - 1) * 24 * 60 * 60 * 1000);
+// /global/activity requires an explicit date range
+export function activityRange(days, now = new Date()) {
+  const start = new Date(now.getTime() - (days - 1) * 24 * 60 * 60 * 1000);
   const format = (date) => date.toISOString().slice(0, 10);
   return { start_date: format(start), end_date: format(now) };
 }
@@ -38,6 +46,9 @@ function formatCurrency(value) {
 export default function Component({ service: configuredService }) {
   const { t } = useTranslation();
 
+  const configuredDays = configuredService.widget.days;
+  const days = Number.isInteger(configuredDays) && configuredDays > 0 ? configuredDays : DEFAULT_DAYS;
+
   const service = withWidgetFields(configuredService, DEFAULT_FIELDS);
   const { widget } = service;
   const { fields } = widget;
@@ -49,10 +60,14 @@ export default function Component({ service: configuredService }) {
   const { data: activityData, error: activityError } = useWidgetAPI(
     widget,
     wanted("activity") ? "activity" : "",
-    activityRange(),
+    activityRange(days),
   );
   const { data: usersData, error: usersError } = useWidgetAPI(widget, wanted("users") ? "users" : "");
-  const { data: cacheData, error: cacheError } = useWidgetAPI(widget, wanted("cache") ? "cache" : "", activityRange());
+  const { data: cacheData, error: cacheError } = useWidgetAPI(
+    widget,
+    wanted("cache") ? "cache" : "",
+    activityRange(days),
+  );
   const { data: topModelData, error: topModelError } = useWidgetAPI(widget, wanted("top_model") ? "top_model" : "", {
     limit: 1,
   });
@@ -115,10 +130,15 @@ export default function Component({ service: configuredService }) {
     }
   };
 
+  const getLabel = (field) => {
+    const rangeKey = RANGE_FIELDS[field];
+    return rangeKey ? t(`litellm.${rangeKey}`, { days }) : t(`litellm.${field}`);
+  };
+
   return (
     <Container service={service}>
       {fields.map((field) => (
-        <Block key={field} label={`litellm.${field}`} value={getFieldValue(field)} />
+        <Block key={field} field={`litellm.${field}`} label={getLabel(field)} value={getFieldValue(field)} />
       ))}
     </Container>
   );
