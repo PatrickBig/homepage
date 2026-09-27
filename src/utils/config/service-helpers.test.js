@@ -439,6 +439,7 @@ describe("utils/config/service-helpers", () => {
               { type: "prometheusmetric", metrics: [], refreshInterval: 2500 },
               { type: "spoolman", spoolIds: [1, 2] },
               { type: "jellystat", days: "7" },
+              { type: "litellm", days: "90" },
               { type: "grafana", alerts: [] },
               { type: "unraid", pool1: "a", pool2: "b", pool3: "c", pool4: "d" },
               { type: "yourspotify", interval: "daily" },
@@ -480,6 +481,7 @@ describe("utils/config/service-helpers", () => {
       }),
     );
     expect(widgets.find((w) => w.type === "jellystat")).toEqual(expect.objectContaining({ days: 7 }));
+    expect(widgets.find((w) => w.type === "litellm")).toEqual(expect.objectContaining({ days: 90 }));
     expect(widgets.find((w) => w.type === "lubelogger")).toEqual(expect.objectContaining({ vehicleID: 12 }));
   });
 

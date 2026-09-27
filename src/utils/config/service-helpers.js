@@ -719,6 +719,10 @@ export function cleanServiceGroups(groups) {
         if (type === "jellystat") {
           if (days !== undefined) widget.days = parseInt(days, 10);
         }
+
+        if (type === "litellm") {
+          if (days !== undefined) widget.days = parseInt(days, 10);
+        }
         if (type === "grafana") {
           if (alerts) widget.alerts = alerts;
         }
