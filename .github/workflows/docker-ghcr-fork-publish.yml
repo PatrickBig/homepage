@@ -1,0 +1,105 @@
+# Fork-local utility workflow (lives only on the ghcr-publish branch, not part of the PR).
+# Builds the app exactly like upstream CI (pnpm build + CI=true Dockerfile path)
+# and pushes a multi-arch image to GHCR under this fork's namespace,
+# authenticated with GITHUB_TOKEN (packages:write) — no personal token needed.
+#
+# Usage:  gh workflow run docker-ghcr-fork-publish.yml --ref ghcr-publish -f tag=v2.4.0-litellm
+name: Docker GHCR Publish (Fork)
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Image tag (semver with suffix, e.g. v2.4.0-litellm)"
+        required: true
+        default: "v2.4.0-litellm"
+      revision:
+        description: "Revision string baked into the image (defaults to HEAD sha)"
+        required: false
+        default: ""
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  build-and-push:
+    name: Build & Push to GHCR
+    runs-on: ubuntu-latest
+    env:
+      IMAGE_NAME: ghcr.io/patrickbig/homepage
+      REVISION: ${{ inputs.revision || github.sha }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Next.js build cache
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v5.0.2
+        with:
+          path: .next/cache
+          key: nextjs-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}-${{ hashFiles('**/*.js', '**/*.jsx') }}
+          restore-keys: |
+            nextjs-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
+        with:
+          version: 10
+          run_install: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v6.0.0
+        with:
+          node-version: 24
+          cache: "pnpm"
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Build app
+        run: |
+          echo "NEXT_PUBLIC_BUILDTIME=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_ENV"
+          NEXT_PUBLIC_VERSION="${{ inputs.tag }}" \
+          NEXT_PUBLIC_REVISION="${{ env.REVISION }}" \
+          pnpm run build
+
+      - name: Setup QEMU
+        uses: docker/setup-qemu-action@1f40c72289eff860ee54a304f93cff62e0a43a2 # v4.3.0
+
+      - name: Setup Docker buildx
+        uses: docker/setup-buildx-action@37fe631027851001ddb9b187196cc803df7f5f0e # v4.0.2
+
+      - name: Log into GHCR
+        uses: docker/login-action@abd2ef45e78c5afb21d64d4ca52ee8550d9572c7 # v4.2.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a # v7.0.0
+        with:
+          context: .
+          push: true
+          tags: ${{ env.IMAGE_NAME }}:${{ inputs.tag }}
+          labels: |
+            org.opencontainers.image.title=homepage
+            org.opencontainers.image.url="https://github.com/PatrickBig/homepage"
+            org.opencontainers.image.source='https://github.com/PatrickBig/homepage'
+            org.opencontainers.image.licenses='Apache-2.0'
+            org.opencontainers.image.revision=${{ env.REVISION }}
+            org.opencontainers.image.version=${{ inputs.tag }}
+          build-args: |
+            CI=true
+            BUILDTIME=${{ env.NEXT_PUBLIC_BUILDTIME }}
+            VERSION=${{ inputs.tag }}
+            REVISION=${{ env.REVISION }}
+          platforms: linux/amd64,linux/arm64
+          provenance: false
+          cache-from: type=local,src=/tmp/.buildx-cache
+          cache-to: type=local,dest=/tmp/.buildx-cache-new,mode=max
+
+      - name: Move cache
+        run: |
+          rm -rf /tmp/.buildx-cache
+          mv /tmp/.buildx-cache-new /tmp/.buildx-cache
