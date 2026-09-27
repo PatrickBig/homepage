@@ -17,6 +17,11 @@ on:
         description: "Revision string baked into the image (defaults to HEAD sha)"
         required: false
         default: ""
+  push:
+    # Fallback trigger (when the workflow_dispatch API is unresponsive):
+    # push any commit to a branch named 'ghcr-trigger' (created from the
+    # branch whose code should be baked into the image).
+    branches: [ghcr-trigger]
 
 permissions:
   contents: read
@@ -28,6 +33,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       IMAGE_NAME: ghcr.io/patrickbig/homepage
+      TAG: ${{ inputs.tag || 'v2.4.0-litellm' }}
       REVISION: ${{ inputs.revision || github.sha }}
     steps:
       - name: Checkout repository
@@ -59,7 +65,7 @@ jobs:
       - name: Build app
         run: |
           echo "NEXT_PUBLIC_BUILDTIME=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_ENV"
-          NEXT_PUBLIC_VERSION="${{ inputs.tag }}" \
+          NEXT_PUBLIC_VERSION="${{ env.TAG }}" \
           NEXT_PUBLIC_REVISION="${{ env.REVISION }}" \
           pnpm run build
 
@@ -81,18 +87,18 @@ jobs:
         with:
           context: .
           push: true
-          tags: ${{ env.IMAGE_NAME }}:${{ inputs.tag }}
+          tags: ${{ env.IMAGE_NAME }}:${{ env.TAG }}
           labels: |
             org.opencontainers.image.title=homepage
             org.opencontainers.image.url="https://github.com/PatrickBig/homepage"
             org.opencontainers.image.source='https://github.com/PatrickBig/homepage'
             org.opencontainers.image.licenses='Apache-2.0'
             org.opencontainers.image.revision=${{ env.REVISION }}
-            org.opencontainers.image.version=${{ inputs.tag }}
+            org.opencontainers.image.version=${{ env.TAG }}
           build-args: |
             CI=true
             BUILDTIME=${{ env.NEXT_PUBLIC_BUILDTIME }}
-            VERSION=${{ inputs.tag }}
+            VERSION=${{ env.TAG }}
             REVISION=${{ env.REVISION }}
           platforms: linux/amd64,linux/arm64
           provenance: false
