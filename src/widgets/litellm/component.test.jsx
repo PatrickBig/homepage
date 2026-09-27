@@ -14,7 +14,7 @@ vi.mock("utils/proxy/use-widget-api", () => ({
 
 import Component, { DEFAULT_FIELDS, activityRange } from "./component";
 
-const MODELS_DATA = [{ id: "gpt-4o" }, { id: "claude-3" }];
+const MODELS_DATA = { data: [{ id: "gpt-4o" }, { id: "claude-3" }] };
 const SPEND_DATA = { spend: 12.345, max_budget: 100 };
 const ACTIVITY_DATA = { daily_data: [], sum_api_requests: 99, sum_total_tokens: 1234567 };
 const USERS_DATA = { users: [{ user_id: "a" }, { user_id: "b" }], total: 7 };
@@ -63,6 +63,7 @@ describe("widgets/litellm/component", () => {
 
     expect(DEFAULT_FIELDS).toHaveLength(4);
     expect(container.querySelectorAll(".service-block")).toHaveLength(4);
+    expect(DEFAULT_FIELDS).toEqual(["models", "spend", "requests", "tokens"]);
     for (const field of DEFAULT_FIELDS) {
       expect(screen.getByText(`litellm.${field}`)).toBeInTheDocument();
     }
@@ -74,7 +75,6 @@ describe("widgets/litellm/component", () => {
       models: { data: MODELS_DATA, error: undefined },
       spend: { data: SPEND_DATA, error: undefined },
       activity: { data: ACTIVITY_DATA, error: undefined },
-      users: { data: USERS_DATA, error: undefined },
     });
 
     const { container } = render({ widget: { type: "litellm", url: "http://x" } });
@@ -82,7 +82,19 @@ describe("widgets/litellm/component", () => {
     expectBlockValue(container, "litellm.models", "2");
     expectBlockValue(container, "litellm.spend", "$12.35");
     expectBlockValue(container, "litellm.requests", "99");
-    expectBlockValue(container, "litellm.users", "7");
+    expectBlockValue(container, "litellm.tokens", "1234567");
+  });
+
+  it("supports the bare-array models response shape", () => {
+    mockEndpoints({
+      models: { data: [{ id: "a" }, { id: "b" }, { id: "c" }], error: undefined },
+    });
+
+    const { container } = render({
+      widget: { type: "litellm", url: "http://x", fields: ["models", "spend", "users", "budget"] },
+    });
+
+    expectBlockValue(container, "litellm.models", "3");
   });
 
   it("does not fetch endpoints that no selected field needs", () => {
@@ -93,9 +105,8 @@ describe("widgets/litellm/component", () => {
     expect(calledEndpoints).toContain("models");
     expect(calledEndpoints).toContain("spend");
     expect(calledEndpoints).toContain("activity");
-    expect(calledEndpoints).toContain("users");
-    // cache/top_model are not default fields, so they must be disabled (empty endpoint)
-    const unused = useWidgetAPI.mock.calls.filter((call) => ["cache", "top_model"].includes(call[1]));
+    // users/cache/top_model are not default fields, so they must be disabled (empty endpoint)
+    const unused = useWidgetAPI.mock.calls.filter((call) => ["users", "cache", "top_model"].includes(call[1]));
     expect(unused).toEqual([]);
   });
 
@@ -119,21 +130,21 @@ describe("widgets/litellm/component", () => {
     expect(topModelCall).toBeUndefined();
   });
 
-  it("renders optional fields budget, tokens, cache, failed and top_model", () => {
+  it("renders optional fields budget, users, cache and top_model", () => {
     mockEndpoints({
       spend: { data: SPEND_DATA, error: undefined },
-      activity: { data: ACTIVITY_DATA, error: undefined },
+      users: { data: USERS_DATA, error: undefined },
       cache: { data: CACHE_DATA, error: undefined },
       top_model: { data: TOP_MODEL_DATA, error: undefined },
     });
 
     const { container } = render({
-      widget: { type: "litellm", url: "http://x", fields: ["budget", "tokens", "cache", "top_model"] },
+      widget: { type: "litellm", url: "http://x", fields: ["budget", "users", "cache", "top_model"] },
     });
 
     expect(container.querySelectorAll(".service-block")).toHaveLength(4);
     expectBlockValue(container, "litellm.budget", "12.3");
-    expectBlockValue(container, "litellm.tokens", "1234567");
+    expectBlockValue(container, "litellm.users", "7");
     expectBlockValue(container, "litellm.cache", "33.3");
     expectBlockValue(container, "litellm.top_model", "gpt-4o");
   });

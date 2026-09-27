@@ -5,7 +5,7 @@ import Container from "components/services/widget/container";
 import useWidgetAPI from "utils/proxy/use-widget-api";
 import withWidgetFields from "utils/widget-fields";
 
-export const DEFAULT_FIELDS = ["models", "spend", "requests", "users"];
+export const DEFAULT_FIELDS = ["models", "spend", "requests", "tokens"];
 
 // which endpoint provides the data for each field
 const FIELD_ENDPOINTS = {
@@ -79,8 +79,11 @@ export default function Component({ service: configuredService }) {
     const { data } = source;
 
     switch (field) {
-      case "models":
-        return Array.isArray(data) ? data.length : undefined;
+      case "models": {
+        // LiteLLM returns { data: [...] } (OpenAI-style); some builds return a bare array
+        const models = Array.isArray(data) ? data : data?.data;
+        return Array.isArray(models) ? models.length : undefined;
+      }
       case "spend":
         return formatCurrency(data?.spend ?? data?.total_spend);
       case "budget": {

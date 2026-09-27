@@ -1067,7 +1067,7 @@
     },
     "litellm": {
         "models": "Models",
-        "spend": "Spend",
+        "spend": "Spend (all time)",
         "budget": "Budget Used",
         "requests": "Requests (30d)",
         "tokens": "Tokens (30d)",
